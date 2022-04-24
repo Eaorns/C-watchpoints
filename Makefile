@@ -1,14 +1,15 @@
 CFLAGS = -g -Wall
 CC = gcc
 OBJS = watchpoint.o watchpointalloc.o
+OBJP = $(OBJS:%.o=src/%.o)
 
 .o:
 	$(CC) $(CFLAGS) -c $<
 
-example: ${OBJS}
-	${CC} example.c ${CFLAGS} -o $@ ${OBJS}
+example: ${OBJP}
+	${CC} src/example.c ${CFLAGS} -o $@ ${OBJP}
 
 clean:
-	rm *.o example
+	rm src/*.o example
 
 all: example
