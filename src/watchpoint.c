@@ -10,10 +10,11 @@
 
 extern int errno;
 
-#ifndef DEBUG
-#define DEBUG printf
+// #define DO_WP_DEBUG
+#ifdef DO_WP_DEBUG
+#define WP_DEBUG printf
 #else
-#define DEBUG
+#define WP_DEBUG(...) while (0) {}
 #endif
 
 #ifndef PAGE_SIZE
@@ -32,7 +33,7 @@ extern int errno;
 // https://en.wikipedia.org/wiki/FLAGS_register
 #define TRAPFLAG_X86 0x0100
 
-typedef int (*wp_handler)(void*, void*, void*, void*);
+typedef void (*wp_handler)(void*, long, void*);
 
 typedef struct wpage {
     void *addr;
@@ -51,6 +52,7 @@ int num_watchpoints;
 wp_page **page_table;
 wp_addr **wp_table;
 void *curr_segv_addr;
+long prev_val;
 
 wp_page *wp_page_get(void *addr)
 {
@@ -66,9 +68,9 @@ wp_page *wp_page_get(void *addr)
 
 void wp_page_inc(void *addr)
 {
-    DEBUG("[watchpoint handler] Protecting address %p ", addr);
+    WP_DEBUG("[watchpoint handler] Protecting address %p ", addr);
     addr = PAGE_ALIGN(addr);
-    DEBUG("in page %p\n", addr);
+    WP_DEBUG("in page %p\n", addr);
     wp_page *page = wp_page_get(addr);
 
     if (page != NULL) {
@@ -80,26 +82,26 @@ void wp_page_inc(void *addr)
         page->next = page_table[PAGE_TABLE_BASE(addr)];
         page_table[PAGE_TABLE_BASE(addr)] = page;
 
-        DEBUG("[watchpoint handler] Calling mprotect...\n");
+        WP_DEBUG("[watchpoint handler] Calling mprotect...\n");
         if (mprotect(addr, PAGE_SIZE, PROT_READ) != 0) {
-            DEBUG("[watchpoint handler] Error calling mprotect: ");
+            WP_DEBUG("[watchpoint handler] Error calling mprotect: ");
             switch (errno) {
                 case EACCES:
-                    DEBUG("EACCES\n");
+                    WP_DEBUG("EACCES\n");
                     break;
                 case EINVAL:
-                    DEBUG("EINVAL\n");
+                    WP_DEBUG("EINVAL\n");
                     break;
                 case ENOMEM:
-                    DEBUG("ENOMEM\n");
+                    WP_DEBUG("ENOMEM\n");
                     break;
                 default:
-                    DEBUG("UNKNOWN ERROR\n");
+                    WP_DEBUG("UNKNOWN ERROR\n");
             }
             return;
         }
     }
-    DEBUG("[watchpoint handler] Address protected!\n");
+    WP_DEBUG("[watchpoint handler] Address protected!\n");
 }
 
 void wp_page_dec(void *addr)
@@ -194,11 +196,11 @@ int wp_addr_rem(void *addr)
 
 void watchpoint_sigsegv(int signo, siginfo_t *info, void *vcontext)
 {
-    DEBUG("[watchpoint handler] SIGSEGV at %p\n", info->si_addr);
+    WP_DEBUG("[watchpoint handler] SIGSEGV at %p\n", info->si_addr);
     // TODO also check if SIGSEGV type is as expected & possibly if page is in use
     //      (which may be more efficient than checking the address)
     if (info->si_addr == NULL || curr_segv_addr != NULL || wp_addr_get(info->si_addr) == NULL) {
-        DEBUG("[watchpoint handler] Non-intentional SIGSEGV! Restoring default handler...\n");
+        WP_DEBUG("[watchpoint handler] Non-intentional SIGSEGV! Restoring default handler...\n");
 
         /* Restore default sighandler */
         struct sigaction actsegv = { 0 };
@@ -209,7 +211,8 @@ void watchpoint_sigsegv(int signo, siginfo_t *info, void *vcontext)
     }
     curr_segv_addr = info->si_addr;
 
-    DEBUG("[watchpoint handler] Old value: %i\n", *(int*)curr_segv_addr);
+    WP_DEBUG("[watchpoint handler] Old value: %i\n", *(int*)curr_segv_addr);
+    prev_val = *(long*)curr_segv_addr;
 
     /* Enable single-step flag */
     ucontext_t *context = vcontext;
@@ -223,7 +226,7 @@ void watchpoint_sigsegv(int signo, siginfo_t *info, void *vcontext)
 
 void watchpoint_sigtrap(int signo, siginfo_t *info, void *vcontext)
 {
-    DEBUG("[watchpoint handler] New value: %i\n", *(int*)curr_segv_addr);
+    WP_DEBUG("[watchpoint handler] New value: %i\n", *(int*)curr_segv_addr);
 
     /* Disable single-step flag */
     ucontext_t *context = vcontext;
@@ -232,19 +235,23 @@ void watchpoint_sigtrap(int signo, siginfo_t *info, void *vcontext)
     wp_page *page = wp_page_get(PAGE_ALIGN(curr_segv_addr));
     mprotect(page->addr, PAGE_SIZE, PROT_READ);
 
+    wp_addr *addr = wp_addr_get(curr_segv_addr);
+    if (addr->handler != NULL)
+        (addr->handler)(curr_segv_addr, prev_val, addr->data);
+
     curr_segv_addr = NULL;
     return;
 }
 
 int watchpoint_init()
 {
-    DEBUG("[watchpoint handler] Starting watchpoint init...\n");
+    WP_DEBUG("[watchpoint handler] Starting watchpoint init...\n");
     num_watchpoints = 0;
     page_table = malloc(sizeof(void*) * PAGE_TABLE_SIZE);
     wp_table = malloc(sizeof(void*) * WP_TABLE_SIZE);
     curr_segv_addr = NULL;
 
-    DEBUG("[watchpoint handler] Page size: %li\n", PAGE_SIZE);
+    WP_DEBUG("[watchpoint handler] Page size: %li\n", PAGE_SIZE);
 
     /* Register SIGSEGV handler */
     struct sigaction actsegv = { 0 };
@@ -258,7 +265,7 @@ int watchpoint_init()
     acttrap.sa_sigaction = &watchpoint_sigtrap;
     sigaction(SIGTRAP, &acttrap, NULL);
 
-    DEBUG("[watchpoint handler] Watchpoint init done!\n");
+    WP_DEBUG("[watchpoint handler] Watchpoint init done!\n");
     return 0;
 }
 

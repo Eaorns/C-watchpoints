@@ -4,10 +4,11 @@
 #include <sys/mman.h>
 #include "watchpointalloc.h"
 
-#ifndef DEBUG
-#define DEBUG printf
+// #define DO_WPA_DEBUG
+#ifdef DO_WPA_DEBUG
+#define WPA_DEBUG printf
 #else
-#define DEBUG
+#define WPA_DEBUG(...) while (0) {}
 #endif
 
 #ifndef PAGE_SIZE
@@ -42,7 +43,7 @@ typedef struct aalloc {
 wpa_page **alloc_candidates;
 wpa_alloc **alloc_table;
 
-int wpa_init()
+int wpalloc_init()
 {
     alloc_candidates = malloc(sizeof(void*) * RECENT_ALLOC_AMT);
     alloc_table = malloc(sizeof(void*) * ALLOC_TABLE_SIZE);
@@ -50,8 +51,26 @@ int wpa_init()
     return 0;
 }
 
-int wpa_fini()
+int wpalloc_fini()
 {
+    wpa_alloc *curr, *next;
+    for (int i = 0; i < ALLOC_TABLE_SIZE; i++) {
+        curr = alloc_table[i];
+        while (curr != NULL) {
+            next = curr->next;
+            curr->page->allocs--;
+            if (curr->page->allocs == 0) {
+                munmap(entry->page->base, entry->page->size);
+                free(curr->page);
+            }
+            free(curr);
+            curr = next;
+        }
+    }
+
+    free(alloc_candidates);
+    free(alloc_table);
+
     return 0;
 }
 
