@@ -4,9 +4,15 @@
 #include "watchpoint.h"
 #include "watchpointalloc.h"
 
+void handler(void *addr, long old_val, void *user_data)
+{
+    printf("[handler] The old value was %i, now it is %i.\n",
+           (int)old_val, *(int*)addr);
+}
+
 int main(int argc, char *argv[])
 {
-    wpa_init();
+    wpalloc_init();
     watchpoint_init();
 
     // int *x = mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
@@ -14,7 +20,7 @@ int main(int argc, char *argv[])
     *x = 5;
 
     printf("[main] Registering watchpoint...\n");
-    watchpoint_add(x, NULL, NULL);
+    watchpoint_add(x, &handler, NULL);
     printf("[main] Registered %p!\n", x);
 
     for (int i = 0; i < 10; i++) {
@@ -24,6 +30,7 @@ int main(int argc, char *argv[])
     }
 
     watchpoint_fini();
+    wpalloc_fini();
 
     return 0;
 }
