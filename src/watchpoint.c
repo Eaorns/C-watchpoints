@@ -1,4 +1,4 @@
-#define _GNU_SOURCE // Required for REG_RIP which is otherwise not recognised
+#define _GNU_SOURCE // Required for REG_EFL which is otherwise not recognised
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>

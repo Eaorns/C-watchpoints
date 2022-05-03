@@ -1,4 +1,4 @@
-CFLAGS = -g -Wall
+CFLAGS = -rdynamic -g -Wall
 CC = gcc
 OBJS = watchpoint.o watchpointalloc.o
 OBJP = $(OBJS:%.o=src/%.o)

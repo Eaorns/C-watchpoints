@@ -1,15 +1,22 @@
+#define _GNU_SOURCE  // Required for REG_RIP
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
-#include "watchpoint.h"
-#include <ucontext.h>
+#include <execinfo.h>
 #include <signal.h>
+#include <ucontext.h>
+#include "watchpoint.h"
 #include "watchpointalloc.h"
 
-void handler(void *addr, void *old_val, void *ucontext void *user_data)
+
+void handler(void *addr, void *old_val, void *ucontext, void *user_data)
 {
-    ucontext_t *context = ucontext;
-    printf("[handler] Function: %x\n", context->uc_stack.ss_sp);
+    // https://www.linuxjournal.com/article/6391
+    ucontext_t *context = (ucontext_t *)ucontext;
+    void *trace_buff[2];
+    trace_buff[1] = (void *)context->uc_mcontext.gregs[REG_RIP];
+    char **trace_names = backtrace_symbols(trace_buff, 2);
+    printf("[handler] Change occurred at %s\n", trace_names[1]);
     printf("[handler] The old value was %i, now it is %i.\n",
            *(int*)old_val, *(int*)addr);
 }
