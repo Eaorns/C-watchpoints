@@ -33,7 +33,7 @@ extern int errno;
 // https://en.wikipedia.org/wiki/FLAGS_register
 #define TRAPFLAG_X86 0x0100
 
-typedef void (*wp_handler)(void*, long, void*);
+typedef void (*wp_handler)(void*, void*, void*, void*);
 
 typedef struct wpage {
     void *addr;
@@ -52,7 +52,7 @@ int num_watchpoints;
 wp_page **page_table;
 wp_addr **wp_table;
 void *curr_segv_addr;
-long prev_val;
+void *prev_val;
 
 wp_page *wp_page_get(void *addr)
 {
@@ -212,7 +212,7 @@ void watchpoint_sigsegv(int signo, siginfo_t *info, void *vcontext)
     curr_segv_addr = info->si_addr;
 
     WP_DEBUG("[watchpoint handler] Old value: %i\n", *(int*)curr_segv_addr);
-    prev_val = *(long*)curr_segv_addr;
+    prev_val = curr_segv_addr;
 
     /* Enable single-step flag */
     ucontext_t *context = vcontext;
@@ -237,7 +237,7 @@ void watchpoint_sigtrap(int signo, siginfo_t *info, void *vcontext)
 
     wp_addr *addr = wp_addr_get(curr_segv_addr);
     if (addr->handler != NULL)
-        (addr->handler)(curr_segv_addr, prev_val, addr->data);
+        (addr->handler)(curr_segv_addr, prev_val, vcontext, addr->data);
 
     curr_segv_addr = NULL;
     return;

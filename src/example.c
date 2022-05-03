@@ -2,12 +2,16 @@
 #include <stdlib.h>
 #include <sys/mman.h>
 #include "watchpoint.h"
+#include <ucontext.h>
+#include <signal.h>
 #include "watchpointalloc.h"
 
-void handler(void *addr, long old_val, void *user_data)
+void handler(void *addr, void *old_val, void *ucontext void *user_data)
 {
+    ucontext_t *context = ucontext;
+    printf("[handler] Function: %x\n", context->uc_stack.ss_sp);
     printf("[handler] The old value was %i, now it is %i.\n",
-           (int)old_val, *(int*)addr);
+           *(int*)old_val, *(int*)addr);
 }
 
 int main(int argc, char *argv[])
