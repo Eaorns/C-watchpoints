@@ -30,17 +30,25 @@ extern int errno;
 #define WP_TABLE_SIZE 4096
 #define WP_TABLE_BASE(addr) ((long)addr % WP_TABLE_SIZE)
 
+/* Set the trapflag value based on the target architecture */
 // https://en.wikipedia.org/wiki/FLAGS_register
 #define TRAPFLAG_X86 0x0100
+#define TRAPFLAG TRAPFLAG_X86
 
 typedef void (*wp_handler)(void*, void*, void*, void*);
 
+/* Struct to keep track of which pages contain breakpoints,
+ * Also stores how many there are in the page. */
 typedef struct wpage {
     void *addr;
     int counter;
     struct wpage *next;
 } wp_page;
 
+/* Struct to store a watchpoint.
+ * Keeps track of the address where the watchpoint is placed,
+ * as well as the accompanying handler function and provided
+ * user data. */
 typedef struct waddr {
     void *addr;
     wp_handler handler;
@@ -54,6 +62,10 @@ wp_addr **wp_table;
 void *curr_segv_addr;
 void *prev_val;
 
+/**
+ * Retrieve a wp_page entry from the page table,
+ * given an address in the page.
+ */
 wp_page *wp_page_get(void *addr)
 {
     wp_page *entry = page_table[PAGE_TABLE_BASE(addr)];

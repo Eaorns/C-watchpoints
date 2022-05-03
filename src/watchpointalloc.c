@@ -60,7 +60,7 @@ int wpalloc_fini()
             next = curr->next;
             curr->page->allocs--;
             if (curr->page->allocs == 0) {
-                munmap(entry->page->base, entry->page->size);
+                munmap(curr->page->base, curr->page->size);
                 free(curr->page);
             }
             free(curr);
