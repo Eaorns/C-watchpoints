@@ -194,8 +194,8 @@ int wp_addr_rem(void *addr)
 
     if (prev == NULL) {
         // TODO what about everything before?
-            wp_table[WP_TABLE_BASE(addr)] = curr->next;
-        } else {
+        wp_table[WP_TABLE_BASE(addr)] = curr->next;
+    } else {
         prev->next = curr->next;
     }
     free(curr);
@@ -211,7 +211,7 @@ void watchpoint_sigsegv(int signo, siginfo_t *info, void *vcontext)
     WP_DEBUG("[watchpoint handler] SIGSEGV at %p\n", info->si_addr);
     // TODO also check if SIGSEGV type is as expected & possibly if page is in use
     //      (which may be more efficient than checking the address)
-    if (info->si_addr == NULL || curr_segv_addr != NULL || wp_addr_get(info->si_addr) == NULL) {
+    if (info->si_addr == NULL || curr_segv_addr != NULL || wp_page_get(info->si_addr) == NULL) {
         WP_DEBUG("[watchpoint handler] Non-intentional SIGSEGV! Restoring default handler...\n");
 
         /* Restore default sighandler */
@@ -224,7 +224,7 @@ void watchpoint_sigsegv(int signo, siginfo_t *info, void *vcontext)
     curr_segv_addr = info->si_addr;
 
     WP_DEBUG("[watchpoint handler] Old value: %i\n", *(int*)curr_segv_addr);
-    prev_val = curr_segv_addr;
+    prev_val = (void*)(*(long*)curr_segv_addr);
 
     /* Enable single-step flag */
     ucontext_t *context = vcontext;
