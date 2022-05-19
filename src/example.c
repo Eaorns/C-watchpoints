@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
     int *x = (int*)wpalloc(sizeof(int));
     *x = 5;
 
-    int *y = (x + sizeof(int));
+    int *y = (int*)wpalloc(sizeof(int));
     *y = 9;
 
     printf("[main] Registering watchpoint...\n");
@@ -69,15 +69,10 @@ int main(int argc, char *argv[])
     baz(x);
     *x = 4;
 
-    /* Change x and y (which is unwatched) */
-    for (int i = 0; i < 4; i++) {
-        printf("[main] Increasing x by %i...\n", i);
-        *x += i;
-        printf("[main] x changed...\n");
-        *y += 1;
-        printf("[main] y changed...\n");
-        printf("[main] x: %i  y: %i\n", *x, *y);
-    }
+    /* Change y, which is unwatched but in a protected page */
+    printf("[main] Changing y...\n");
+    *y += 1;
+    printf("[main] x: %i  y: %i\n", *x, *y);
 
     watchpoint_fini();
     wpalloc_fini();
