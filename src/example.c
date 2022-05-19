@@ -55,22 +55,29 @@ int main(int argc, char *argv[])
     int *x = (int*)wpalloc(sizeof(int));
     *x = 5;
 
+    int *y = (x + sizeof(int));
+    *y = 9;
+
     printf("[main] Registering watchpoint...\n");
     watchpoint_add(x, &handler, data);
     printf("[main] Registered %p!\n", x);
 
+    /* Change x in different functions */
     *x = 0;
-
     foo(x);
     bar(x);
     baz(x);
-
     *x = 4;
-    // for (int i = 0; i < 10; i++) {
-    //     printf("[main] Increasing x by %i...\n", i);
-    //     *x += i;
-    //     printf("[main] %i\n", *x);
-    // }
+
+    /* Change x and y (which is unwatched) */
+    for (int i = 0; i < 4; i++) {
+        printf("[main] Increasing x by %i...\n", i);
+        *x += i;
+        printf("[main] x changed...\n");
+        *y += 1;
+        printf("[main] y changed...\n");
+        printf("[main] x: %i  y: %i\n", *x, *y);
+    }
 
     watchpoint_fini();
     wpalloc_fini();
