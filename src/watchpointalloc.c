@@ -45,8 +45,8 @@ wpa_alloc **alloc_table;
 
 int wpalloc_init()
 {
-    alloc_candidates = malloc(sizeof(void*) * RECENT_ALLOC_AMT);
-    alloc_table = malloc(sizeof(void*) * ALLOC_TABLE_SIZE);
+    alloc_candidates = calloc(sizeof(void*), RECENT_ALLOC_AMT);
+    alloc_table = calloc(sizeof(void*), ALLOC_TABLE_SIZE);
 
     return 0;
 }
@@ -76,7 +76,7 @@ int wpalloc_fini()
 
 void *wpalloc(size_t size)
 {
-    wpa_alloc *entry = malloc(sizeof(wpa_alloc));
+    wpa_alloc *entry = calloc(sizeof(wpa_alloc), 1);
     entry->size = size;
 
     wpa_page *page;
@@ -97,7 +97,7 @@ void *wpalloc(size_t size)
     }
 
     /* Not enough space found in candidate pages, create new */
-    page = malloc(sizeof(wpa_page));
+    page = calloc(sizeof(wpa_page), 1);
     page->size = (PAGE_ALLOC_SIZE > size) ? PAGE_ALLOC_SIZE :
                                             ((size / PAGE_ALLOC_SIZE) + 1) * PAGE_ALLOC_SIZE;
     page->base = mmap(NULL, page->size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
