@@ -4,6 +4,7 @@
 #include <sys/mman.h>
 #include "watchpointalloc.h"
 
+
 // #define DO_WPA_DEBUG
 #ifdef DO_WPA_DEBUG
 #define WPA_DEBUG printf
@@ -21,7 +22,8 @@
 
 #define RECENT_ALLOC_AMT 8
 
-#define ALLOC_TABLE_SIZE 4096
+// #define ALLOC_TABLE_SIZE 4096
+#define ALLOC_TABLE_SIZE 2048
 #define ALLOC_TABLE_BASE(addr) ((long)addr % ALLOC_TABLE_SIZE)
 
 typedef struct apage {
@@ -113,7 +115,7 @@ void *wpalloc(size_t size)
     /* Add new page to list of candidates if its remaining
      * space is more than offered by one of the candidates */
     int candidate = -1;
-    size_t candidate_left = page->size;
+    size_t candidate_left = page->left;
     for (int i = 0; i < RECENT_ALLOC_AMT; i++) {
         if (alloc_candidates[i] == NULL) {
             alloc_candidates[i] = page;

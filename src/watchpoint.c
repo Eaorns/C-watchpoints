@@ -258,8 +258,8 @@ int watchpoint_init()
 {
     WP_DEBUG("[watchpoint handler] Starting watchpoint init...\n");
     num_watchpoints = 0;
-    page_table = malloc(sizeof(void*) * PAGE_TABLE_SIZE);
-    wp_table = malloc(sizeof(void*) * WP_TABLE_SIZE);
+    page_table = calloc(sizeof(void*), PAGE_TABLE_SIZE);
+    wp_table = calloc(sizeof(void*), WP_TABLE_SIZE);
     curr_segv_addr = NULL;
 
     WP_DEBUG("[watchpoint handler] Page size: %li\n", PAGE_SIZE);
